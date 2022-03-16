@@ -1,0 +1,65 @@
+# For more information: https://laravel.com/docs/sail
+version: '3'
+
+networks:
+  app_network:
+    driver: bridge
+
+services:
+  app:
+    image: webdevops/php-nginx:8.0
+    container_name: app
+    hostname: app
+
+    working_dir: /app
+
+    ports:
+      - "8888:80"
+
+    volumes:
+      - .:/app
+      - .deploy/conf/nginx/default.nginx:/opt/docker/etc/nginx/vhost.conf
+
+    networks: ['app_network']
+
+  # MySQL
+  db:
+    image: mysql:8
+    container_name: db
+    hostname: db
+    restart: unless-stopped
+    tty: true
+    ports: ["3306:3306"]
+
+    environment:
+      - MYSQL_DATABASE=app
+      - MYSQL_ALLOW_EMPTY_PASSWORD=true
+      - SERVICE_TAGS=dev
+      - SERVICE_NAME=mysql
+
+    volumes:
+      - .:/app
+      - .dev/data/mysql:/var/lib/mysql
+      - .dev/logs/mysql:/var/log/mysql
+
+    networks: ['app_network']
+
+  # PHPMyAdmin
+  pma:
+    image: phpmyadmin:fpm-alpine
+    restart: always
+    container_name: pma
+
+    ports: ["8082:80"]
+
+    links:
+      - db
+
+    environment:
+      - PMA_HOST=db
+      - PMA_USER=root
+      - PMA_PASSWORD=
+
+    tty: true
+
+    networks: ['app_network']
